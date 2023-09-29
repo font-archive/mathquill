@@ -10,7 +10,6 @@
  */
 var TextBlock = P(Node, function(_, super_) {
   _.ctrlSeq = '\\text';
-  _.ariaLabel = 'Text';
 
   _.replaces = function(replacedText) {
     if (replacedText instanceof Fragment)
@@ -36,7 +35,7 @@ var TextBlock = P(Node, function(_, super_) {
 
     if (textBlock[R].siblingCreated) textBlock[R].siblingCreated(cursor.options, L);
     if (textBlock[L].siblingCreated) textBlock[L].siblingCreated(cursor.options, R);
-    textBlock.bubble(function (node) { node.reflow(); });
+    textBlock.bubble('reflow');
   };
 
   _.parser = function() {
@@ -66,7 +65,7 @@ var TextBlock = P(Node, function(_, super_) {
   _.latex = function() {
     var contents = this.textContents();
     if (contents.length === 0) return '';
-    return this.ctrlSeq + '{' + contents.replace(/\\/g, '\\backslash ').replace(/[{}]/g, '\\$&') + '}';
+    return '\\text{' + contents.replace(/\\/g, '\\backslash ').replace(/[{}]/g, '\\$&') + '}';
   };
   _.html = function() {
     return (
@@ -75,29 +74,12 @@ var TextBlock = P(Node, function(_, super_) {
       + '</span>'
     );
   };
-  _.mathspeakTemplate = ['Start'+_.ariaLabel, 'End'+_.ariaLabel];
-  _.mathspeak = function(opts) {
-    if (opts && opts.ignoreShorthand) {
-      return this.mathspeakTemplate[0]+', '+this.textContents() +', '+this.mathspeakTemplate[1]
-    } else {
-      return this.textContents();
-    }
-  };
-  _.isTextBlock = function() {
-    return true;
-  };
 
   // editability methods: called by the cursor for editing, cursor movements,
   // and selection of the MathQuill tree, these all take in a direction and
   // the cursor
-  _.moveTowards = function(dir, cursor) {
-    cursor.insAtDirEnd(-dir, this);
-    aria.queueDirEndOf(-dir).queue(cursor.parent, true);
-  };
-  _.moveOutOf = function(dir, cursor) {
-    cursor.insDirOf(dir, this);
-    aria.queueDirOf(dir).queue(this);
-  };
+  _.moveTowards = function(dir, cursor) { cursor.insAtDirEnd(-dir, this); };
+  _.moveOutOf = function(dir, cursor) { cursor.insDirOf(dir, this); };
   _.unselectInto = _.moveTowards;
 
   // TODO: make these methods part of a shared mixin or something.
@@ -133,14 +115,12 @@ var TextBlock = P(Node, function(_, super_) {
       cursor.insLeftOf(this);
       super_.createLeftOf.call(leftBlock, cursor); // micro-optimization, not for correctness
     }
-    this.bubble(function (node) { node.reflow(); });
-    // TODO needs tests
-    aria.alert(ch);
+    this.bubble('reflow');
   };
   _.writeLatex = function(cursor, latex) {
     if (!cursor[L]) TextPiece(latex).createLeftOf(cursor);
     else cursor[L].appendText(latex);
-    this.bubble(function (node) { node.reflow(); });
+    this.bubble('reflow');
   };
 
   _.seek = function(pageX, cursor) {
@@ -268,34 +248,29 @@ var TextPiece = P(Node, function(_, super_) {
     var from = this[-dir];
     if (from) from.insTextAtDirEnd(ch, dir);
     else TextPiece(ch).createDir(-dir, cursor);
+
     return this.deleteTowards(dir, cursor);
   };
 
-  _.mathspeak =
   _.latex = function() { return this.text; };
 
   _.deleteTowards = function(dir, cursor) {
     if (this.text.length > 1) {
-      var deletedChar;
       if (dir === R) {
         this.dom.deleteData(0, 1);
-        deletedChar = this.text[0];
         this.text = this.text.slice(1);
       }
       else {
         // note that the order of these 2 lines is annoyingly important
         // (the second line mutates this.text.length)
         this.dom.deleteData(-1 + this.text.length, 1);
-        deletedChar = this.text[this.text.length - 1];
         this.text = this.text.slice(0, -1);
       }
-      aria.queue(deletedChar);
     }
     else {
       this.remove();
       this.jQ.remove();
       cursor[dir] = this[dir];
-      aria.queue(this.text);
     }
   };
 
@@ -333,33 +308,28 @@ LatexCmds.textrm =
 LatexCmds.textup =
 LatexCmds.textmd = TextBlock;
 
-function makeTextBlock(latex, ariaLabel, tagName, attrs) {
+function makeTextBlock(latex, tagName, attrs) {
   return P(TextBlock, {
     ctrlSeq: latex,
-    ariaLabel: ariaLabel,
-    mathspeakTemplate: ['Start'+ariaLabel, 'End'+ariaLabel],
-    html: function() {
-      var cmdId = 'mathquill-command-id=' + this.id;
-      return '<'+tagName+' '+attrs+' '+cmdId+'>'+this.textContents()+'</'+tagName+'>';
-      }
+    htmlTemplate: '<'+tagName+' '+attrs+'>&0</'+tagName+'>'
   });
 }
 
 LatexCmds.em = LatexCmds.italic = LatexCmds.italics =
 LatexCmds.emph = LatexCmds.textit = LatexCmds.textsl =
-  makeTextBlock('\\textit', 'Italic', 'i', 'class="mq-text-mode"');
+  makeTextBlock('\\textit', 'i', 'class="mq-text-mode"');
 LatexCmds.strong = LatexCmds.bold = LatexCmds.textbf =
-  makeTextBlock('\\textbf', 'Bold', 'b', 'class="mq-text-mode"');
+  makeTextBlock('\\textbf', 'b', 'class="mq-text-mode"');
 LatexCmds.sf = LatexCmds.textsf =
-  makeTextBlock('\\textsf', 'Sans serif font', 'span', 'class="mq-sans-serif mq-text-mode"');
+  makeTextBlock('\\textsf', 'span', 'class="mq-sans-serif mq-text-mode"');
 LatexCmds.tt = LatexCmds.texttt =
-  makeTextBlock('\\texttt', 'Mono space font', 'span', 'class="mq-monospace mq-text-mode"');
+  makeTextBlock('\\texttt', 'span', 'class="mq-monospace mq-text-mode"');
 LatexCmds.textsc =
-  makeTextBlock('\\textsc', 'Variable font', 'span', 'style="font-variant:small-caps" class="mq-text-mode"');
+  makeTextBlock('\\textsc', 'span', 'style="font-variant:small-caps" class="mq-text-mode"');
 LatexCmds.uppercase =
-  makeTextBlock('\\uppercase', 'Uppercase', 'span', 'style="text-transform:uppercase" class="mq-text-mode"');
+  makeTextBlock('\\uppercase', 'span', 'style="text-transform:uppercase" class="mq-text-mode"');
 LatexCmds.lowercase =
-  makeTextBlock('\\lowercase', 'Lowercase', 'span', 'style="text-transform:lowercase" class="mq-text-mode"');
+  makeTextBlock('\\lowercase', 'span', 'style="text-transform:lowercase" class="mq-text-mode"');
 
 
 var RootMathCommand = P(MathCommand, function(_, super_) {

@@ -30,24 +30,15 @@ CharCmds['\\'] = P(MathCommand, function(_, super_) {
     this.ends[L].write = function(cursor, ch) {
       cursor.show().deleteSelection();
 
-      if (ch.match(/[a-z]/i)) {
-        VanillaSymbol(ch).createLeftOf(cursor);
-        // TODO needs tests
-        aria.alert(ch);
-      }
+      if (ch.match(/[a-z]/i)) VanillaSymbol(ch).createLeftOf(cursor);
       else {
-        var cmd = this.parent.renderCommand(cursor);
-        // TODO needs tests
-        aria.queue(cmd.mathspeak({ createdLeftOf: cursor }));
+        this.parent.renderCommand(cursor);
         if (ch !== '\\' || !this.isEmpty()) cursor.parent.write(cursor, ch);
-        else aria.alert();
       }
     };
     this.ends[L].keystroke = function(key, e, ctrlr) {
       if (key === 'Tab' || key === 'Enter' || key === 'Spacebar') {
-        var cmd = this.parent.renderCommand(ctrlr.cursor);
-        // TODO needs tests
-        aria.alert(cmd.mathspeak({ createdLeftOf: ctrlr.cursor }));
+        this.parent.renderCommand(ctrlr.cursor);
         e.preventDefault();
         return;
       }
@@ -97,7 +88,6 @@ CharCmds['\\'] = P(MathCommand, function(_, super_) {
       if (this._replacedFragment)
         this._replacedFragment.remove();
     }
-    return cmd;
   };
 });
 

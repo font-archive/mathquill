@@ -11,8 +11,7 @@ JS environment could actually contain many instances. */
 
 //A fake cursor in the fake textbox that the math is rendered in.
 var Cursor = P(Point, function(_) {
-  _.init = function(initParent, options, controller) {
-    this.controller = controller;
+  _.init = function(initParent, options) {
     this.parent = initParent;
     this.options = options;
 
@@ -99,7 +98,6 @@ var Cursor = P(Point, function(_) {
       var pageX = self.offset().left;
       to.seek(pageX, self);
     }
-    aria.queue(to, true);
   };
   _.offset = function() {
     //in Opera 11.62, .getBoundingClientRect() and hence jQuery::offset()
@@ -234,13 +232,7 @@ var Cursor = P(Point, function(_) {
     this.selectionChanged();
     return true;
   };
-  _.resetToEnd = function (controller) {
-    this.clearSelection();
-    var root = controller.root;
-    this[R] = 0;
-    this[L] = root.ends[R];
-    this.parent = root;
-  };
+
   _.clearSelection = function() {
     if (this.selection) {
       this.selection.clear();
@@ -298,10 +290,9 @@ var Selection = P(Fragment, function(_, super_) {
     this.jQ.replaceWith(this.jQ[0].childNodes);
     return this;
   };
-  _.join = function(methodName, separatorToken) {
-    var separator = separatorToken || '';
+  _.join = function(methodName) {
     return this.fold('', function(fold, child) {
-      return fold + separator + child[methodName]();
+      return fold + child[methodName]();
     });
   };
 });

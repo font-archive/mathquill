@@ -84,9 +84,8 @@ function run_make_test() {
     if (code) {
       console.error('Exit Code ' + code);
     } else {
-      var serverAddress = HOST === '0.0.0.0' ? 'localhost:' + PORT : HOST + ':' + PORT;
-      console.log('\nMathQuill is now running on ' + serverAddress);
-      console.log('Open http://' + serverAddress + '/test/demo.html\n');
+      console.log('\nMathQuill is now running on localhost:9292');
+      console.log('Open http://localhost:9292/test/demo.html\n');
     }
     for (var i = 0; i < q.length; i += 1) q[i]();
     q = undefined;
